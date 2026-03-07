@@ -1,0 +1,5 @@
+syntax = "proto3";
+package integration;
+option go_package = "baseapp/gen/api/integration;integrationpb";
+
+// TODO: integration connection management RPCs

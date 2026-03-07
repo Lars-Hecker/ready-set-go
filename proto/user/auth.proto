@@ -1,0 +1,62 @@
+syntax = "proto3";
+package user;
+option go_package = "baseapp/gen/api/user;userpb";
+
+message SignupRequest {
+  string email = 1;
+  string name = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+}
+
+message AuthResponse {
+  string session_token = 1;
+  SessionInfo session = 2;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {}
+
+message GetActiveSessionsRequest {}
+
+message GetActiveSessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {}
+
+message RevokeAllSessionsRequest {
+  bool keep_current = 1;
+}
+
+message RevokeAllSessionsResponse {}
+
+message SessionInfo {
+  string id = 1;
+  string device_type = 2;
+  string device_name = 3;
+  string browser = 4;
+  string os = 5;
+  string ip_address = 6;
+  string country_code = 7;
+  string city = 8;
+  int64 last_activity_at = 9;
+  int64 created_at = 10;
+  bool is_current = 11;
+}
+
+service AuthService {
+  rpc Signup(SignupRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc GetActiveSessions(GetActiveSessionsRequest) returns (GetActiveSessionsResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse);
+}

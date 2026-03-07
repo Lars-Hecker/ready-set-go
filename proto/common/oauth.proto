@@ -1,0 +1,5 @@
+syntax = "proto3";
+package common;
+option go_package = "baseapp/gen/api/common;commonpb";
+
+// TODO: shared OAuth handshake protocol used by user/auth and integration/

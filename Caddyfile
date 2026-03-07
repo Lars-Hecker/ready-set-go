@@ -1,0 +1,18 @@
+
+(dev) {
+    reverse_proxy {$FRONTEND_HOST}
+}
+
+(prod) {
+    root * /srv
+    encode gzip
+    try_files {path} {path}/ /index.html
+    file_server
+}
+
+{$DOMAIN_NAME} {
+    handle /api/* {
+        reverse_proxy {$BACKEND_HOST}
+    }
+    import {$MODE}
+}

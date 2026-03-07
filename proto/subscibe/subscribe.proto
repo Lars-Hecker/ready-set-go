@@ -1,0 +1,5 @@
+syntax = "proto3";
+package subscribe;
+option go_package = "baseapp/gen/api/billing;billingpb";
+
+// TODO: subscription RPCs

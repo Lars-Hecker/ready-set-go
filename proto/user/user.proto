@@ -1,0 +1,30 @@
+syntax = "proto3";
+package user;
+option go_package = "baseapp/gen/api/user;userpb";
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message Profile {
+  string user_id = 1;
+  string name = 2;
+  string username = 3;
+  string avatar_url = 4;
+}
+
+message GetMeRequest {}
+
+message GetMeResponse {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  string username = 4;
+  string avatar_url = 5;
+  bool is_active = 6;
+}
+
+service UserService {
+  rpc GetProfile(GetProfileRequest) returns (Profile);
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+}

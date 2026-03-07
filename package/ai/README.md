@@ -1,0 +1,1 @@
+A file for anything AI streaming, to connect with ai features from the backend. used by domain etc. i suppose... Maybe can be removed

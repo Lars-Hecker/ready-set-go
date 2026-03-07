@@ -1,0 +1,1 @@
+write a general message handler. we have types like mobile and email, but for now we only want to implement the email sender. the email sender should be general too to switch later, but for now, in another file, only implement a simple aws ses handler.

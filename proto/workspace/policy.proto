@@ -1,0 +1,5 @@
+syntax = "proto3";
+package workspace;
+option go_package = "baseapp/gen/api/workspace;workspacepb";
+
+// TODO: workspace policy management RPCs

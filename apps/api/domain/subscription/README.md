@@ -1,0 +1,1 @@
+Handle the stripe billing process. We need to track payments here, in the corresponding tables, of course.

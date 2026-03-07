@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+.idea/
+.vscode/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+
+# Generated files
+apps/admin/.tanstack/
+apps/web/.tanstack/
+apps/api/infra/admin/dist/*
+!apps/api/infra/admin/dist/index.html

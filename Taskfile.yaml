@@ -1,0 +1,56 @@
+version: "3"
+
+tasks:
+  generate:
+    desc: Run all code generation
+    cmds:
+      - task: gen:proto
+      - task: gen:sqlc
+
+  gen:proto:
+    desc: Generate protobuf and Connect RPC code
+    cmds:
+      - buf generate
+
+  gen:sqlc:
+    desc: Generate sqlc query code
+    dir: apps/api
+    cmds:
+      - sqlc generate
+
+  migrate:
+    desc: Run database migrations
+    dotenv: [".env"]
+    cmds:
+      - go run ./apps/api/cmd/migrate
+
+  dev:api:
+    desc: Run the API server
+    dotenv: [".env"]
+    cmds:
+      - go run ./apps/api/cmd/api
+
+  dev:admin:
+    desc: Run the admin panel dev server
+    cmds:
+      - pnpm --filter @baseapp/admin dev
+
+  build:admin:
+    desc: Build the admin panel
+    cmds:
+      - pnpm --filter @baseapp/admin build
+      - rm -rf apps/api/infra/admin/dist
+      - cp -r apps/admin/dist apps/api/infra/admin/dist
+
+  build:api:
+    desc: Build the API server binary (requires admin to be built first)
+    deps: [build:admin]
+    dir: apps/api
+    cmds:
+      - go build -o ../../bin/api ./cmd/api
+
+  build:
+    desc: Build all binaries
+    cmds:
+      - task: build:admin
+      - task: build:api

@@ -1,0 +1,37 @@
+syntax = "proto3";
+package file;
+option go_package = "baseapp/gen/api/file;filepb";
+
+message RequestUploadRequest {
+  string workspace_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size = 4;
+}
+
+message RequestUploadResponse {
+  string file_id = 1;
+  string upload_url = 2;
+}
+
+message ConfirmUploadRequest {
+  string file_id = 1;
+}
+
+message ConfirmUploadResponse {
+  string file_id = 1;
+}
+
+message GetDownloadURLRequest {
+  string file_id = 1;
+}
+
+message GetDownloadURLResponse {
+  string download_url = 1;
+}
+
+service FileService {
+  rpc RequestUpload(RequestUploadRequest) returns (RequestUploadResponse);
+  rpc ConfirmUpload(ConfirmUploadRequest) returns (ConfirmUploadResponse);
+  rpc GetDownloadURL(GetDownloadURLRequest) returns (GetDownloadURLResponse);
+}
