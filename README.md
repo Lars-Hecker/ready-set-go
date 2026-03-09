@@ -58,3 +58,11 @@ TODO: how to wire up content management pages and user management
 ### Key Directories to Explore
 - **`api/infra/pref/`**: Understand how roles and permissions (RBAC) are structured.
 - **`api/infra/auth/`**: Review the session-based authentication flow.
+
+## Acknowledgments
+
+The admin panel (`apps/admin`) is based on [shadcn-admin](https://github.com/satnaing/shadcn-admin), licensed under the MIT License.
+
+## License
+
+[MIT](LICENSE)
