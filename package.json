@@ -1,12 +1,16 @@
 {
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev:web": "pnpm --filter @baseapp/web dev",
     "dev:admin": "pnpm --filter @baseapp/admin dev",
     "build:web": "pnpm --filter @baseapp/web build",
-    "build:admin": "pnpm --filter @baseapp/admin build"
+    "build:admin": "pnpm --filter @baseapp/admin build",
+    "buf:generate": "buf generate"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

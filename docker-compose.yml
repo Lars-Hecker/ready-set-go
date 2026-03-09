@@ -1,0 +1,131 @@
+services:
+  # =============================================================================
+  # Database
+  # =============================================================================
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-baseapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-baseapp}
+      POSTGRES_DB: ${POSTGRES_DB:-baseapp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-baseapp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Redis (for background jobs)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Database migrations (runs once on startup)
+  # =============================================================================
+  migrate:
+    build:
+      context: .
+      target: runtime
+    command: ["/bin/migrate"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-baseapp}:${POSTGRES_PASSWORD:-baseapp}@postgres:5432/${POSTGRES_DB:-baseapp}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # =============================================================================
+  # API Server
+  # =============================================================================
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-baseapp}:${POSTGRES_PASSWORD:-baseapp}@postgres:5432/${POSTGRES_DB:-baseapp}?sslmode=disable
+      REDIS_URL: redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: "8080"
+      # Optional services (uncomment and configure as needed)
+      # S3_BUCKET: ${S3_BUCKET}
+      # S3_REGION: ${S3_REGION}
+      # S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      # S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      # GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # Background Worker
+  # =============================================================================
+  worker:
+    build:
+      context: .
+      target: runtime
+    command: ["/bin/worker"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-baseapp}:${POSTGRES_PASSWORD:-baseapp}@postgres:5432/${POSTGRES_DB:-baseapp}?sslmode=disable
+      REDIS_URL: redis:6379
+      # Notification services (optional)
+      # SES_REGION: ${SES_REGION}
+      # SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID}
+      # SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY}
+      # SES_FROM_ADDRESS: ${SES_FROM_ADDRESS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # =============================================================================
+  # Reverse Proxy
+  # =============================================================================
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

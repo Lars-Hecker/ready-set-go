@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"baseapp/infra/config"
 	migrate "baseapp/sql"
 )
 
@@ -16,7 +17,7 @@ func main() {
 	flag.StringVar(&direction, "direction", "up", "Migration direction: up or down")
 	flag.Parse()
 
-	dbURL := requireEnv("DATABASE_URL")
+	dbURL := config.Require("DATABASE_URL")
 
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dbURL)
@@ -48,13 +49,4 @@ func main() {
 		slog.Error("invalid direction", "direction", direction)
 		os.Exit(1)
 	}
-}
-
-func requireEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		slog.Error("env required", "key", key)
-		os.Exit(1)
-	}
-	return v
 }

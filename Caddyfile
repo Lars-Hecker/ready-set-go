@@ -1,18 +1,32 @@
+# Main app
+{$DOMAIN_NAME:localhost} {
+	@api path_regexp ^/[a-z]+\.v[0-9]+\.[A-Z]
+	handle @api {
+		reverse_proxy api:8080
+	}
 
-(dev) {
-    reverse_proxy {$FRONTEND_HOST}
+	handle {
+		root * /srv/web
+
+		# Serve existing files
+		@static file
+		handle @static {
+			file_server
+		}
+
+		# SPA routes (no file extension) serve index.html
+		@spa not path_regexp \.
+		handle @spa {
+			rewrite * /index.html
+			file_server
+		}
+
+		# Missing files with extensions return 404
+		respond "Not found" 404
+	}
 }
 
-(prod) {
-    root * /srv
-    encode gzip
-    try_files {path} {path}/ /index.html
-    file_server
-}
-
-{$DOMAIN_NAME} {
-    handle /api/* {
-        reverse_proxy {$BACKEND_HOST}
-    }
-    import {$MODE}
+# Admin subdomain
+admin.{$DOMAIN_NAME:localhost} {
+	reverse_proxy api:8080
 }

@@ -7,15 +7,452 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const placeholderWorkspace = `-- name: PlaceholderWorkspace :one
-SELECT 1
+const countActiveMembers = `-- name: CountActiveMembers :one
+SELECT count(*) FROM workspace_memberships
+WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL
 `
 
-func (q *Queries) PlaceholderWorkspace(ctx context.Context) (int32, error) {
-	row := q.db.QueryRow(ctx, placeholderWorkspace)
-	var column_1 int32
-	err := row.Scan(&column_1)
-	return column_1, err
+func (q *Queries) CountActiveMembers(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveMembers, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createMembership = `-- name: CreateMembership :one
+
+INSERT INTO workspace_memberships (user_id, workspace_id, role, status, created_by)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by
+`
+
+type CreateMembershipParams struct {
+	UserID      uuid.UUID
+	WorkspaceID uuid.UUID
+	Role        int16
+	Status      MembershipStatus
+	CreatedBy   pgtype.UUID
+}
+
+// Membership queries
+func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, createMembership,
+		arg.UserID,
+		arg.WorkspaceID,
+		arg.Role,
+		arg.Status,
+		arg.CreatedBy,
+	)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const createWorkspace = `-- name: CreateWorkspace :one
+INSERT INTO workspaces (name, slug)
+VALUES ($1, $2)
+RETURNING id, name, slug, is_active, prefs, created_at, updated_at, deleted_at
+`
+
+type CreateWorkspaceParams struct {
+	Name string
+	Slug string
+}
+
+func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, createWorkspace, arg.Name, arg.Slug)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.IsActive,
+		&i.Prefs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getMembership = `-- name: GetMembership :one
+SELECT id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by FROM workspace_memberships
+WHERE user_id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+`
+
+type GetMembershipParams struct {
+	UserID      uuid.UUID
+	WorkspaceID uuid.UUID
+}
+
+func (q *Queries) GetMembership(ctx context.Context, arg GetMembershipParams) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, getMembership, arg.UserID, arg.WorkspaceID)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const getMembershipByID = `-- name: GetMembershipByID :one
+SELECT id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by FROM workspace_memberships
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetMembershipByID(ctx context.Context, id uuid.UUID) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, getMembershipByID, id)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const getPrimaryOwner = `-- name: GetPrimaryOwner :one
+SELECT id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by FROM workspace_memberships
+WHERE workspace_id = $1 AND role = 0 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetPrimaryOwner(ctx context.Context, workspaceID uuid.UUID) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, getPrimaryOwner, workspaceID)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const getWorkspaceByID = `-- name: GetWorkspaceByID :one
+SELECT id, name, slug, is_active, prefs, created_at, updated_at, deleted_at FROM workspaces
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetWorkspaceByID(ctx context.Context, id uuid.UUID) (Workspace, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceByID, id)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.IsActive,
+		&i.Prefs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
+SELECT id, name, slug, is_active, prefs, created_at, updated_at, deleted_at FROM workspaces
+WHERE slug = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceBySlug, slug)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.IsActive,
+		&i.Prefs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const listActiveMemberships = `-- name: ListActiveMemberships :many
+SELECT id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by FROM workspace_memberships
+WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL
+ORDER BY role ASC, created_at ASC
+`
+
+func (q *Queries) ListActiveMemberships(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMembership, error) {
+	rows, err := q.db.Query(ctx, listActiveMemberships, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WorkspaceMembership
+	for rows.Next() {
+		var i WorkspaceMembership
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.WorkspaceID,
+			&i.Role,
+			&i.ValidFrom,
+			&i.ValidUntil,
+			&i.Prefs,
+			&i.Status,
+			&i.InvitationExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMemberships = `-- name: ListMemberships :many
+SELECT id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by FROM workspace_memberships
+WHERE workspace_id = $1 AND deleted_at IS NULL
+ORDER BY role ASC, created_at ASC
+`
+
+func (q *Queries) ListMemberships(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceMembership, error) {
+	rows, err := q.db.Query(ctx, listMemberships, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WorkspaceMembership
+	for rows.Next() {
+		var i WorkspaceMembership
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.WorkspaceID,
+			&i.Role,
+			&i.ValidFrom,
+			&i.ValidUntil,
+			&i.Prefs,
+			&i.Status,
+			&i.InvitationExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkspacesForUser = `-- name: ListWorkspacesForUser :many
+SELECT w.id, w.name, w.slug, w.is_active, w.prefs, w.created_at, w.updated_at, w.deleted_at FROM workspaces w
+JOIN workspace_memberships m ON m.workspace_id = w.id
+WHERE m.user_id = $1
+  AND m.status = 'active'
+  AND m.deleted_at IS NULL
+  AND w.deleted_at IS NULL
+ORDER BY w.created_at DESC
+`
+
+func (q *Queries) ListWorkspacesForUser(ctx context.Context, userID uuid.UUID) ([]Workspace, error) {
+	rows, err := q.db.Query(ctx, listWorkspacesForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Workspace
+	for rows.Next() {
+		var i Workspace
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.IsActive,
+			&i.Prefs,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const softDeleteMembership = `-- name: SoftDeleteMembership :exec
+UPDATE workspace_memberships
+SET deleted_at = now(), status = 'removed', updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteMembership(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, softDeleteMembership, id)
+	return err
+}
+
+const softDeleteWorkspace = `-- name: SoftDeleteWorkspace :exec
+UPDATE workspaces
+SET deleted_at = now(), is_active = false, updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, softDeleteWorkspace, id)
+	return err
+}
+
+const updateMembershipRole = `-- name: UpdateMembershipRole :one
+UPDATE workspace_memberships
+SET role = $1, updated_at = now()
+WHERE id = $2 AND deleted_at IS NULL
+RETURNING id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by
+`
+
+type UpdateMembershipRoleParams struct {
+	Role int16
+	ID   uuid.UUID
+}
+
+func (q *Queries) UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, updateMembershipRole, arg.Role, arg.ID)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const updateMembershipStatus = `-- name: UpdateMembershipStatus :one
+UPDATE workspace_memberships
+SET status = $1, updated_at = now()
+WHERE id = $2 AND deleted_at IS NULL
+RETURNING id, user_id, workspace_id, role, valid_from, valid_until, prefs, status, invitation_expires_at, created_at, updated_at, deleted_at, created_by
+`
+
+type UpdateMembershipStatusParams struct {
+	Status MembershipStatus
+	ID     uuid.UUID
+}
+
+func (q *Queries) UpdateMembershipStatus(ctx context.Context, arg UpdateMembershipStatusParams) (WorkspaceMembership, error) {
+	row := q.db.QueryRow(ctx, updateMembershipStatus, arg.Status, arg.ID)
+	var i WorkspaceMembership
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.WorkspaceID,
+		&i.Role,
+		&i.ValidFrom,
+		&i.ValidUntil,
+		&i.Prefs,
+		&i.Status,
+		&i.InvitationExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const updateWorkspace = `-- name: UpdateWorkspace :one
+UPDATE workspaces
+SET name       = coalesce($1, name),
+    slug       = coalesce($2, slug),
+    updated_at = now()
+WHERE id = $3 AND deleted_at IS NULL
+RETURNING id, name, slug, is_active, prefs, created_at, updated_at, deleted_at
+`
+
+type UpdateWorkspaceParams struct {
+	Name pgtype.Text
+	Slug pgtype.Text
+	ID   uuid.UUID
+}
+
+func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, updateWorkspace, arg.Name, arg.Slug, arg.ID)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.IsActive,
+		&i.Prefs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs (rebuilt in Docker)
+**/dist
+bin/
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+!apps/api/infra/*/README.md
+LICENSE
+
+# Tests
+**/*_test.go
+**/testdata
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log

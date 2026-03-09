@@ -3,40 +3,16 @@ package file
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+
+	"baseapp/infra/config"
 )
-
-type S3Config struct {
-	Bucket          string
-	Region          string
-	AccessKeyID     string
-	SecretAccessKey string
-	URLLifetime     time.Duration
-}
-
-func S3ConfigFromEnv() S3Config {
-	lifetime := 15 * time.Minute
-	if v := os.Getenv("S3_URL_LIFETIME_MINUTES"); v != "" {
-		if mins, err := strconv.Atoi(v); err == nil && mins > 0 {
-			lifetime = time.Duration(mins) * time.Minute
-		}
-	}
-	return S3Config{
-		Bucket:          os.Getenv("S3_BUCKET"),
-		Region:          os.Getenv("S3_REGION"),
-		AccessKeyID:     os.Getenv("S3_ACCESS_KEY_ID"),
-		SecretAccessKey: os.Getenv("S3_SECRET_ACCESS_KEY"),
-		URLLifetime:     lifetime,
-	}
-}
 
 type S3Service struct {
 	client      *s3.Client
@@ -45,10 +21,10 @@ type S3Service struct {
 	urlLifetime time.Duration
 }
 
-func NewS3Service(ctx context.Context, cfg S3Config) (*S3Service, error) {
-	awsCfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(cfg.Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+func NewS3Service(ctx context.Context, cfg config.S3Config) (*S3Service, error) {
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx,
+		awsconfig.WithRegion(cfg.Region),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			cfg.AccessKeyID, cfg.SecretAccessKey, "",
 		)),
 	)

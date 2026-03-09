@@ -12,8 +12,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@baseapp/ui": "workspace:*",
-    "@baseapp/domain": "workspace:*",
-    "@baseapp/frame": "workspace:*"
+    "@baseapp/bloc": "workspace:*",
+    "@baseapp/frame": "workspace:*",
+    "@tanstack/react-query": "^5.90.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

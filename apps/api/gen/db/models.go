@@ -111,6 +111,20 @@ type BillingDetail struct {
 	UpdatedAt        pgtype.Timestamptz
 }
 
+type DeviceToken struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Platform    string
+	Token       string
+	EndpointArn pgtype.Text
+	P256dh      pgtype.Text
+	Auth        pgtype.Text
+	DeviceName  pgtype.Text
+	IsActive    bool
+	CreatedAt   pgtype.Timestamptz
+	LastUsedAt  pgtype.Timestamptz
+}
+
 type File struct {
 	ID            uuid.UUID
 	WorkspaceID   uuid.UUID
@@ -136,6 +150,27 @@ type IntegrationConnection struct {
 	ExtraData    []byte
 	IsActive     bool
 	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type NotificationLog struct {
+	ID        uuid.UUID
+	UserID    pgtype.UUID
+	Channel   string
+	Recipient string
+	Subject   pgtype.Text
+	Body      pgtype.Text
+	Status    string
+	Error     pgtype.Text
+	CreatedAt pgtype.Timestamptz
+	SentAt    pgtype.Timestamptz
+}
+
+type NotificationPreference struct {
+	UserID       uuid.UUID
+	EmailEnabled bool
+	PushEnabled  bool
+	ChannelPrefs []byte
 	UpdatedAt    pgtype.Timestamptz
 }
 
